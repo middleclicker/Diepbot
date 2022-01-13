@@ -7,3 +7,5 @@ Planned features:
   - Simple movement
   - Aim on players
   - AFK farming mode
+
+To run this bot yourself you will need the OpenCV and javatuples library.
