@@ -36,11 +36,18 @@ Color List (RGB):
 
     Stat Upgrade Checker: 108,150,240 or 102,144,234
     Respawn Checker: 173, 173, 173
+
+    Team Colors:
+        Red: 241,78,84
+        Blue: 0,178,225
+        Purple: 191,127,245
+        Green: 0,225,110
 */
 
 public class Main {
 
     public static boolean dead = false;
+    public static Color[] teamColors = new Color[]{new Color(241,78,84), new Color(0,178,225), new Color(191,127,245), new Color(0,225,110)};
 
     // Dependent on display size and other settings
     public static int width = 1919, height = 965;
@@ -63,13 +70,13 @@ public class Main {
     public static ArrayList<Integer> keystrokes = generateBuildKeystrokes(build, buildMode);
 
     static{ System.loadLibrary(Core.NATIVE_LIBRARY_NAME); }
-    public static void main(String[] args) throws AWTException {
+    public static void main(String[] args) throws AWTException, IOException {
         sendUserMessages();
 
         ThreadManager threadManager = new ThreadManager();
 
         while (true) {
-            // BufferedImage square = ImageIO.read(new File("testimages/trisquaretest.png"));
+            // BufferedImage original = ImageIO.read(new File("testimages/screenshot.png"));
             BufferedImage original = new Robot().createScreenCapture(new Rectangle(startingPoint, new Dimension(width, height)));
 
             doSmartAim(original);
@@ -195,6 +202,14 @@ public class Main {
         BufferedImage triangle = new BufferedImage(width, height, TYPE_INT_RGB);
         BufferedImage pentagon = new BufferedImage(width, height, TYPE_INT_RGB);
         BufferedImage crasher = new BufferedImage(width, height, TYPE_INT_RGB);
+        BufferedImage player = new BufferedImage(width, height, TYPE_INT_RGB);
+
+        int selfColorInt = original.getRGB(width/2, height/2);
+        int  selfred   = (selfColorInt & 0x00ff0000) >> 16;
+        int  selfgreen = (selfColorInt & 0x0000ff00) >> 8;
+        int  selfblue  =  selfColorInt & 0x000000ff;
+
+
         for (int y = 0; y < original.getHeight(); y++) {
             for (int x = 0; x < original.getWidth(); x++) {
                 int  clr   = original.getRGB(x, y);
@@ -211,22 +226,32 @@ public class Main {
                 } else if (red == 241 && green == 119 && blue == 221) {
                     crasher.setRGB(x, y, convertToRGB(118, 141, 252));
                 }
+
+                for (int i = 0; i < 4; i++) {
+                    if (selfred == teamColors[i].getRed() && selfblue == teamColors[i].getBlue() && selfgreen == teamColors[i].getGreen()) continue;
+                    if (teamColors[i].getRGB() == clr) {
+                        // System.out.println("Player detected at " + x + ", " + y + " with color " + (i+1));
+                        player.setRGB(x, y, teamColors[i].getRGB());
+                    }
+                }
             }
         }
 
-        HashMap<Point, Triplet<Double, Float, Integer>> squareHashmap = calcPossibleAimPoints(processImage(img2Mat(square)), 1, 1);
-        HashMap<Point, Triplet<Double, Float, Integer>> triangleHashmap = calcPossibleAimPoints(processImage(img2Mat(triangle)), 2.5f, 1);
-        HashMap<Point, Triplet<Double, Float, Integer>> pentagonHashmap = calcPossibleAimPoints(processImage(img2Mat(pentagon)), 13, 1);
-        HashMap<Point, Triplet<Double, Float, Integer>> crasherHashmap = calcPossibleAimPoints(processImage(img2Mat(crasher)), 13, 2);
+        HashMap<Point, Triplet<Double, Float, Integer>> squareHashmap = calcPossibleAimPoints(processImage(img2Mat(square)), 1, 1, false);
+        HashMap<Point, Triplet<Double, Float, Integer>> triangleHashmap = calcPossibleAimPoints(processImage(img2Mat(triangle)), 2.5f, 1, false);
+        HashMap<Point, Triplet<Double, Float, Integer>> pentagonHashmap = calcPossibleAimPoints(processImage(img2Mat(pentagon)), 13, 1, false);
+        HashMap<Point, Triplet<Double, Float, Integer>> crasherHashmap = calcPossibleAimPoints(processImage(img2Mat(crasher)), 13, 2, false);
+        HashMap<Point, Triplet<Double, Float, Integer>> playerHashmap = calcPossibleAimPoints(processImage(img2Mat(player)), 100, 3, true);
 
         squareHashmap.putAll(triangleHashmap);
         squareHashmap.putAll(pentagonHashmap);
         squareHashmap.putAll(crasherHashmap);
+        squareHashmap.putAll(playerHashmap);
 
         return squareHashmap;
     }
 
-    public static HashMap<Point, Triplet<Double, Float, Integer>> calcPossibleAimPoints(List<List<org.opencv.core.Point>> listoflistsofpoints, float value, int priority) {
+    public static HashMap<Point, Triplet<Double, Float, Integer>> calcPossibleAimPoints(List<List<org.opencv.core.Point>> listoflistsofpoints, float value, int priority, boolean isPlayerMap) {
         //     Location   Distance     Value  Priority
         HashMap<Point, Triplet<Double, Float, Integer>> possibleAimPoints = new HashMap<>();
 
@@ -239,6 +264,14 @@ public class Main {
             Point centroid = new Point();
             centroid.x = (int) (moments.get_m10() / moments.get_m00());
             centroid.y = (int) (moments.get_m01() / moments.get_m00());
+
+            if (isPlayerMap) {
+                if (moments.m00 < 1470) {
+                    continue;
+                }
+            }
+
+            // System.out.println(area + " Priority: " + priority);
 
             possibleAimPoints.put(new Point(centroid.x, centroid.y), new Triplet(calculateDistance(new Point(width / 2, height / 2), new Point(centroid.x, centroid.y)), value, priority));
         }

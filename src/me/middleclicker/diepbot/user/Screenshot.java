@@ -13,6 +13,6 @@ public class Screenshot {
     public static void main(String[] args) throws AWTException, IOException, InterruptedException {
         Main.sleep(5);
         BufferedImage original = new Robot().createScreenCapture(new Rectangle(startingPoint, new Dimension(width, height)));
-        Main.saveBufferedImage(original, "screenshot", "", "png");
+        Main.saveBufferedImage(original, "screenshot", "testimages/", "png");
     }
 }
