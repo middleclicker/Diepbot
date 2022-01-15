@@ -5,7 +5,7 @@ If someone can cares enough and would like to help make the code more readable /
 
 Planned features:
   - Simple movement
-  - Aim on players
-  - AFK farming mode
+  - ~~Aim on players~~ Done
+  - ~~AFK farming mode~~ Done
 
 To run this bot yourself you will need the OpenCV and javatuples library.
